@@ -13,7 +13,7 @@
 
 
 # Specify the amount of time for this job
-#SBATCH --time=54:00:00
+#SBATCH --time=42:00:00
 
 # Specify the maximum amount of physical memory required
 #SBATCH --mem=128gb
@@ -21,9 +21,9 @@
 # Specify an account when more than one available
 #SBATCH --account=PCON0023
 
-#SBATCH --output=dinov2_processed_data/%j_0_log.out
+#SBATCH --output=dinov3_processed_data/%j_0_log.out
 
-#SBATCH --error=dinov2_processed_data/%j_0_log.err
+#SBATCH --error=dinov3_processed_data/%j_0_log.err
 
 
 # Load modules:
