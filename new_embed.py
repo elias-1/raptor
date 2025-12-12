@@ -1,4 +1,4 @@
-
+import json
 import os, sys
 import argparse
 from io import BytesIO
@@ -6,13 +6,10 @@ from io import BytesIO
 import numpy as np
 from tqdm import tqdm
 import torch
-import shutil
-import nibabel as nib
 import zipfile
 from time import time
 from transformers import AutoImageProcessor, AutoModel
 from PIL import Image
-import requests
 
 LATENT_SIZE_LOOKUP = dict(
     SAM=256,
@@ -76,14 +73,12 @@ def crop_pad_matrix(mat, size=224):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some arguments.')
     parser.add_argument('--folder', type=str, default=None, help='Folder containing scans in .nii.gz or .zip (UKBB style)')
-    parser.add_argument('--npz', type=str, default=None, help='Npz blob containing {train,val,test}_images fields')
     parser.add_argument('--extract_file', type=str, default='T1/T1_brain.nii.gz', help='The nii.gz to read if given zip files')
     parser.add_argument('--encoder', type=str, default='DINOv2', help='Encoder type')
     parser.add_argument('--device', type=str, default='cuda:0', help='Device to use')
     parser.add_argument('--manifest', type=str, required=True, help='Manifest file path')
     parser.add_argument('--start', type=int, required=True, help='Start index')
-    parser.add_argument('--many', type=int, required=True, help='Number of files to process')
-    parser.add_argument('--batch_size', type=int, default=64, help='Batch size')
+    parser.add_argument('--batch_size', type=int, default=512, help='Batch size')
     parser.add_argument('--num_torch_threads', type=int, default=4, help='Batch size')
     parser.add_argument('--saveto', type=str, required=True, help='Save directory')
     parser.add_argument('--k', type=str, default=None)
@@ -105,24 +100,18 @@ if __name__ == '__main__':
     else:
         assert args.k is not None
 
-    with open(args.manifest) as fl:
-        fls = [ln.strip() for ln in fl if ln]
-    fbatch = fls[args.start:args.start+args.many]
+    with open(os.path.join(os.path.dirname(args.folder), "train_val_test2.json"), 'r') as f:
+        train_val_test = json.load(f)
 
-    # If MedMNIST format npz, unpack relevant images first
-    npzcache = dict()
-    npzblob = None
-    if args.npz:
-        npzblob = np.load(args.npz)
-        for split in ['train', 'test', 'val']:
-            npzcache[split] = dict()
-            fs = [f for f in fbatch if split in f]
-            fixs = [int(f.split('_')[1]) for f in fs]
-            if len(fixs) == 0: continue
-            fimin, fimax = min(fixs), max(fixs)
-            batch = npzblob[f'{split}_images'][fimin:fimax+1]
-            for fi in range(fimin, fimax+1):
-                npzcache[split][fi] = batch[fi-fimin]
+    fbatch = []
+    for split in ['train', 'val', 'test']:
+        patient_info = train_val_test[split]
+
+        for patient in patient_info:
+            cur_zip_paths = []
+            for filename in patient_info[patient]['filenames']:
+                cur_zip_paths.append(os.path.join(args.folder, filename.split('_')[0], patient + "_" + filename + '.zip'))
+            fbatch.extend(cur_zip_paths)
 
     preprocessor, image_encoder = get_image_encoder(args.encoder, args.device)
     image_encoder = image_encoder.to(args.device).eval()
@@ -135,30 +124,22 @@ if __name__ == '__main__':
         projfiles = [('proj_identity', None)]
 
     pbar = tqdm(fbatch)
-    for pid in pbar:
+    for file_path in pbar:
+        pid = os.path.basename(file_path)
 
-        if '.zip' in pid:
-            zipname = f'{args.folder}/{pid}'
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            filenames = sorted(zip_ref.namelist(), key=lambda x: int(x.split('_')[-1].split('.')[0]))
 
-            with zipfile.ZipFile(zipname, 'r') as zip_ref:
-                filenames = sorted(zip_ref.namelist(), key=lambda x: int(x.split('_')[-1].split('.')[0]))
+            slices = []
+            for filename in filenames:
+                slice_data = zip_ref.read(filename)
+                f = BytesIO(slice_data)
+                image = Image.open(f)
+                slices.append(np.array(image))
 
-                slices = []
-                for filename in filenames:
-                    slice_data = zip_ref.read(filename)
-                    f = BytesIO(slice_data)
-                    image = Image.open(f)
-                    slices.append(np.array(image))
-
-            vol = np.stack(slices)
-            vol = vol.astype(float)
-            vol /= 256
-        elif args.npz:
-            vol = npzcache[pid.split('_')[0]][int(pid.split('_')[1])]
-            vol = vol.astype(float)
-            vol /= 256
-        else:
-            raise 'Not implemented'
+        vol = np.stack(slices)
+        vol = vol.astype(float)
+        vol /= 256
 
         # collect slices (in axes order)
         slices_byxyz = []
