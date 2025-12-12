@@ -13,7 +13,7 @@
 
 
 # Specify the amount of time for this job
-#SBATCH --time=36:00:00
+#SBATCH --time=54:00:00
 
 # Specify the maximum amount of physical memory required
 #SBATCH --mem=128gb
@@ -40,6 +40,6 @@ python create_projector.py --seed 0 --d 1024 --k 100 --saveas data/proj_normal_d
 
 python -u new_embed.py --folder /fs/ess/PCON0023/eye3d/data/ukbiobank/oct \
     --encoder DINOv2 \
-    --batch_size 1024 \
+    --batch_size 1296 \
     --saveto dinov2_processed_data \
     --k data/proj_normal_d1024_k100_run1.npy
