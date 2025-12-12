@@ -76,8 +76,6 @@ if __name__ == '__main__':
     parser.add_argument('--extract_file', type=str, default='T1/T1_brain.nii.gz', help='The nii.gz to read if given zip files')
     parser.add_argument('--encoder', type=str, default='DINOv2', help='Encoder type')
     parser.add_argument('--device', type=str, default='cuda:0', help='Device to use')
-    parser.add_argument('--manifest', type=str, required=True, help='Manifest file path')
-    parser.add_argument('--start', type=int, required=True, help='Start index')
     parser.add_argument('--batch_size', type=int, default=512, help='Batch size')
     parser.add_argument('--num_torch_threads', type=int, default=4, help='Batch size')
     parser.add_argument('--saveto', type=str, required=True, help='Save directory')
