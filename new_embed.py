@@ -16,6 +16,7 @@ LATENT_SIZE_LOOKUP = dict(
     MedSAM=256,
     CLIP=1024,
     DINOv2=1024,
+    DINOv3=1024,
     LlavaMed=1024,
 )
 
@@ -31,9 +32,10 @@ def get_image_encoder(encoder_name, device):
         )
         image_encoder = sam_model_registry['vit_b'](checkpoint=sam_checkpoints[encoder_name])
 
-    elif encoder_name in ['DINOv2', 'CLIP']:
+    elif encoder_name in ['DINOv2', 'DINOv3', 'CLIP']:
         model_url = dict(
             DINOv2='facebook/dinov2-large',
+            DINOv3='facebook/dinov3-vitl16-pretrain-lvd1689m',
             CLIP='openai/clip-vit-large-patch14'
         )[encoder_name]
 
