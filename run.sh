@@ -31,7 +31,7 @@ module load cuda/11.8.0
 
 module load miniconda3/24.1.2-py310
 
-source activate slivit
+source activate raptor
 
 cd /fs/ess/PCON0023/shileicao/code/raptor
 
