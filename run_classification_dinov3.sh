@@ -31,4 +31,4 @@ cd /fs/ess/PCON0023/shileicao/code/raptor
 
 python multilabel_classification.py \
     --split_json /fs/ess/PCON0023/eye3d/data/ukbiobank/train_val_test2.json \
-    --data_path dinov3_processed_data/proj_normal_d1024_k100_run1
+    --data_path dinov3_processed_data/proj_normal_d1024_k100_run2
