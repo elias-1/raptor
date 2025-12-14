@@ -100,7 +100,7 @@ def get_data(train_val_test, data_path, split):
     for patient in patient_info:
         cur_X = []
         for filename in patient_info[patient]['filenames']:
-            cur_X.append(np.load(os.path.join(data_path, filename + '.npy')))
+            cur_X.append(np.load(os.path.join(data_path, patient + "_" + filename + '.npy')))
         X.extend(cur_X)
 
         target = np.array([0, 0, 0, 0, 0, 0, 0, 0])
