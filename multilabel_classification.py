@@ -1,7 +1,8 @@
 import argparse
+import json
+import os
 
 import numpy as np
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score, average_precision_score
@@ -91,27 +92,41 @@ def multilabel_logistic_regression_tuning(args, X_train, y_train, X_val, y_val, 
     return best_model, best_penalty, results, test_roc_aucs
 
 
+def get_data(train_val_test, data_path, split):
+    patient_info = train_val_test[split]
+
+    X = []
+    y = []
+    for patient in patient_info:
+        cur_X = []
+        for filename in patient_info[patient]['filenames']:
+            cur_X.append(np.load(os.path.join(data_path, filename + '.npy')))
+        X.extend(cur_X)
+
+        target = np.array([0, 0, 0, 0, 0, 0, 0, 0])
+        for disease in patient_info[patient]['diseases']:
+            target[int(train_val_test['class_mapping'][disease])] = 1
+        y.extend([target] * len(cur_X))
+
+    return np.stack(X), np.stack(y)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some arguments.')
     parser.add_argument('--use_scaler', default=False, action='store_true')
+    parser.add_argument('--split_json',
+                        type=str,
+                        default='/fs/ess/PCON0023/eye3d/data/ukbiobank/train_val_test2.json',
+                        help='path to train_val_test.json')
+    parser.add_argument('--data_path', type=str, default='', help='data')
     args = parser.parse_args()
 
-    from sklearn.datasets import make_multilabel_classification
+    with open(args.split_json, 'r') as f:
+        train_val_test = json.load(f)
 
-    X, y = make_multilabel_classification(
-        n_samples=1000,
-        n_features=20,
-        n_classes=5,
-        n_labels=8,
-        random_state=42
-    )
-
-    X_train, X_temp, y_train, y_temp = train_test_split(
-        X, y, test_size=0.3, random_state=42
-    )
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_temp, y_temp, test_size=0.5, random_state=42
-    )
+    X_train, y_train = get_data(train_val_test, args.data_path, 'train')
+    X_val, y_val = get_data(train_val_test, args.data_path, 'val')
+    X_test, y_test = get_data(train_val_test, args.data_path, 'test')
 
     best_model, best_penalty, results, test_roc_aucs = multilabel_logistic_regression_tuning(
         args, X_train, y_train, X_val, y_val, X_test, y_test,
