@@ -114,11 +114,12 @@ def get_data(train_val_test, data_path, split):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process some arguments.')
     parser.add_argument('--use_scaler', default=False, action='store_true')
-    parser.add_argument('--split_json',
-                        type=str,
+    parser.add_argument('--split_json', type=str,
                         default='/fs/ess/PCON0023/eye3d/data/ukbiobank/train_val_test2.json',
                         help='path to train_val_test.json')
-    parser.add_argument('--data_path', type=str, default='', help='data')
+    parser.add_argument('--data_path', type=str,
+                        default='dinov2_processed_data/proj_normal_d1024_k100_run1',
+                        help='data')
     args = parser.parse_args()
 
     with open(args.split_json, 'r') as f:
